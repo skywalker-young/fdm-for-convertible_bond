@@ -1,2 +1,1 @@
-# fdm-for-convertible_bond
-建立在option上的convertible bond，，，其实没啥大区别的，但细节上还是搞了很久。
+# 这个之前内容合并了，空白的主要放啥么没想好，有了相关内容再更新吧
