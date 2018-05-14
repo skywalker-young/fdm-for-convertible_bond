@@ -33,7 +33,7 @@ for i in range(59):
      a=Add[i]/tmp  #多加钱买到的股数
      b=Withdraw[i]/tmp #取现卖出的股数
      share.append(share[i]+a-b)
-     #tmp2=(Account[i]+Profit[i]+Add[i]+Withdraw[i])
+      #tmp2=(Account[i]+Profit[i]+Add[i]+Withdraw[i])
      tmp3=(Account[i+1])/(share[i+1])
      NAV.append(tmp3)
 
