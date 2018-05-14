@@ -164,3 +164,4 @@ plt.show()
 
 '''
 wave_guess(dea)
+###http://python3-cookbook.readthedocs.io/zh_CN/latest/c01/p04_find_largest_or_smallest_n_items.html
