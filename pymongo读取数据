@@ -1,0 +1,35 @@
+
+from pymongo.errors import ConnectionFailure
+from pymongo import MongoClient, ASCENDING
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+def dbConnect():
+
+    # dbClient = MongoClient("localhost", 27017)
+    try:
+        dbClient = MongoClient("localhost", 27017)
+        dbName = 'VnTrader_1Min_Db'
+        collectionName = u'IF0000'
+        #StartDate = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) -timedelta(10)
+        StartDate=datetime(2017, 7, 10)
+        d = {'datetime': {'$gte': StartDate}}
+        # collection = dbClient.get_database('dbName').get_collection('collectionName')
+        collection = dbClient[dbName][collectionName]
+        #print collection, d
+        cursor = collection.find(d).sort('datetime', ASCENDING)
+        return list(cursor)
+    except Exception:
+        print u"终止！"
+
+if __name__ == '__main__':
+    db = dbConnect()
+    close=[]
+    for i in db:
+         #print i
+         close.append(i['close'])
+
+    print(close)
+    plt.plot(close)
+    plt.title('closePrice')
+    plt.grid(True)
+    plt.show()
