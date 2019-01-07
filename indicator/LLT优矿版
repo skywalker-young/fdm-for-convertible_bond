@@ -1,0 +1,84 @@
+import numpy as np
+import scipy as sp
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime
+import copy
+ 
+
+data=DataAPI.MktMFutdGet(mainCon=u"",contractMark=u"L0",contractObject=u"IF",tradeDate=u"",startDate=u"20180101",endDate=u"20190104",\
+                               field=['closePrice','secShortName'],pandas="1")
+
+ 
+
+
+
+aclose=np.array(data['closePrice'])
+
+alpha=0.05  #在0，1之间的参数
+
+length=len(aclose)#246
+
+
+
+simpleAVE=[0]*length
+
+simpleAVE[0:30]= [aclose[0] for i in range(30) ]
+
+
+simpleAVE= list(simpleAVE)
+ 
+for i in range(0,length-30):
+
+    simpleAVE[i+30]= np.mean(aclose[i:i+30])
+
+print(len(simpleAVE))
+
+EMA=[0]*(length-30)
+
+EMA[0]=(aclose[0])
+
+
+
+for i in range(length-30-1):
+
+    EMA[i+1]=0.5*alpha*(aclose[i+1]+aclose[i])+(1-alpha)*EMA[i]
+
+
+print(len(EMA))
+
+def LLTAA(closePrice,par):
+    cp=closePrice#copy.deepcopy(closePrice)
+    tmp=copy.deepcopy(closePrice)
+    a=2.0/(par+1.0)
+    for i in np.arange(2,len(tmp)):
+        tmp[i]=(a-(a*a)/4)*cp[i]+((a*a)/2)*cp[i-1]-(a-3*(a*a)/4)*cp[i-2]+2*(1-a)*tmp[i-1]-(1-a)*(1-a)*tmp[i-2]
+    return tmp
+LLTA=LLTAA(aclose,5)
+print('LLTAA',len(LLTA))
+####
+
+#根据LLT，斜率大于0 的地方买，等于0 持有，小于0 卖
+
+###
+
+#k=[0]*len(LLT)
+
+#for i in range(len(LLT)-1):
+
+#    k[i]=LLT[i+1]-LLT[i]
+
+#print('k',k)
+
+
+#fig=plt.figure(figsize=(10,10))
+ 
+plt.plot(aclose,label='index close price')
+tmp=[4100]*30 
+ 
+tmp.extend(EMA)
+plt.plot(tmp,label='EMA',color='purple')
+plt.plot(LLTA,label='LLTA',color='r')
+plt.legend()
+plt.show()
