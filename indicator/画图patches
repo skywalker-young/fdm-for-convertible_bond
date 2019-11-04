@@ -1,0 +1,42 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import scipy as sp
+import numpy as np
+import matplotlib.patches as mpatches
+data=pd.read_excel('listed公司盈利情况.xlsx')
+
+
+xlab=data['营业收入']#price
+#print(max(xlab))#327
+
+ylab=np.array(data['自营增幅'])
+fig, ax = plt.subplots()
+ax.set_xlim([0, 400])
+ax.set_ylim(ymin=0, ymax=14)
+coordinate=[]
+cc={'中信证券':['lightblue'],'海通证券':['lime'],'国泰君安':['aqua'],'华泰证券':['teal'],'广发证券':['brown'],\
+       '申万宏源':['lightgray'],'东方证券':['oldlace'],'招商证券':['olive'],'中国银河':['orangered'],\
+       '兴业证券':['snow'],'中信建设':['violet'],'光大证券':['wheat'],'第一创业':['skyblue'],\
+       '天风证券':['linen'],'浙商证券':['limegreen']}
+cc=pd.DataFrame(cc)
+
+
+for i in range(len(xlab)):
+    coordinate.append(xlab[i])
+    coordinate.append(ylab[i])
+coordinate=np.array(coordinate)
+coordinate=(coordinate.reshape(len(xlab),2))
+
+cc=(cc.loc[0,:])
+nn=(cc.index)
+# print(len(coordinate))
+# print(len(cc))
+j=0
+tmp=np.array([200,5])
+for i in coordinate:
+
+     circle=mpatches.Circle(i,3,color= cc[j] )
+     ax.add_patch(circle)
+     plt.legend(title=nn[j])
+     j=j+1
+plt.show()
