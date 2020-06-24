@@ -96,4 +96,4 @@ for i in range(len(rawdata)):
 rawdata['新增有效商户完成分值']=FinishShopPct
 
 
-rawdata.to_excel('tmpBDkpi_Sales.xlsx',index=None)
+rawdata.to_excel('tmpBDkpi_Sales.xlsx',index=None) 
