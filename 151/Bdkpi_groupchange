@@ -1,0 +1,109 @@
+import pandas as pd
+import datetime
+import numpy as np
+'''
+因为发现BDKPI中团队更改都是发生在五月份中的，因此只提取了商户交易信息汇总表中的五月份行数为、
+新的InfoInMay 表
+'''
+
+rawdata2=pd.read_excel('ForShopfinishedValue.xlsx',nrows=22614)###4,5月交易数据
+gadget_record=pd.read_excel('ForBdkpi.xlsx',sheet_name='机具记录')
+half_finished=pd.read_excel('half_finished_Bdkpi.xlsx')###手动把hardware，order，salse拼起来的表
+
+
+
+current_month=datetime.datetime(2020,5,1)
+last_month=datetime.datetime(2020,4,1)
+#
+# print((current_month-last_month).days)
+# exit()
+old_group_hardware=[]
+new_group_hardware=[]
+old_group_sales=[]
+new_group_sales=[]
+
+tmp1=half_finished['变更时间']
+for i in range(len(tmp1)):
+    tag=pd.isnull(tmp1[i])
+    if tag:    #true 的话，说明变更时间为null，即没有改变
+        tmp_old_hardware=0
+        tmp_new_hardware=half_finished['硬件拓展完成值'][i]
+        tmp_old_sales=0
+        tmp_new_sales=half_finished['新增有效商户完成值'][i]
+    # false，存在变更时间,以业务员id为搜索项，机具记录表中商户交押金的日期为基准，计算原有团队的业绩,
+    else:
+        salesmanId=half_finished['业务员编号'][i]
+        # print(salesmanId)
+
+        changedate=tmp1[i]
+        tmp_rent1=gadget_record.loc[(gadget_record['业务员编号']==salesmanId)&(gadget_record['商户押金日期']<=changedate)&\
+                              (gadget_record['领用用途']=='租赁')]
+        tmp_sell1=gadget_record.loc[(gadget_record['业务员编号']==salesmanId)&(gadget_record['商户押金日期']<=changedate)&\
+                              (gadget_record['领用用途']=='销售')]
+        #以2757681773 李鹏为例，出现在bdkpi表中有变更，但是在机具记录表中不存在，数据为0
+        tmp_old_hardware=len(tmp_rent1)+len(tmp_sell1)*2
+
+        tmp_rent2=gadget_record.loc[(gadget_record['业务员编号']==salesmanId)&(gadget_record['商户押金日期']>changedate)&\
+                              (gadget_record['领用用途']=='租赁')]
+        tmp_sell2 = gadget_record.loc[(gadget_record['业务员编号'] == salesmanId) & (gadget_record['商户押金日期'] > changedate) & \
+                                      (gadget_record['领用用途'] == '销售')]
+        tmp_new_hardware=len(tmp_rent2)+len(tmp_sell2)*2
+        '''以上是机具记录情况，gadget'''
+        '''以下是商户信息情况，rawdata2'''
+        Subcountif_old1 = rawdata2.loc[(rawdata2['首次进件时间']>=current_month)&(rawdata2['首次进件时间']<=changedate)&\
+                                   (rawdata2['编号']==salesmanId)&(rawdata2['审核状态'] == '审核通过') & (rawdata2['5月交易笔数汇总'] > 29) & \
+                                    (rawdata2['开户重复进件'] == 0) & (rawdata2['问题商户'] == 0)]
+        Subcountif_old2=rawdata2.loc[(rawdata2['首次进件时间']>=last_month)&(rawdata2['首次进件时间']<current_month)&\
+                                   (rawdata2['编号']==salesmanId)&(rawdata2['审核状态'] == '审核通过') & (rawdata2['4月交易笔数汇总'] <= 29) & \
+                                 (rawdata2['滚动'] > 29)&  (rawdata2['开户重复进件'] == 0) & (rawdata2['问题商户'] == 0)]
+        tmp_old_sales=len(Subcountif_old1)+len(Subcountif_old2)
+
+        Subcountif_new=rawdata2.loc[(rawdata2['首次进件时间']>changedate)&\
+                                   (rawdata2['编号']==salesmanId)&(rawdata2['审核状态'] == '审核通过') & (rawdata2['5月交易笔数汇总'] > 29) & \
+                                    (rawdata2['开户重复进件'] == 0) & (rawdata2['问题商户'] == 0)]
+        tmp_new_sales=len(Subcountif_new)
+
+    old_group_hardware .append(tmp_old_hardware)
+    new_group_hardware.append(tmp_new_hardware)
+    old_group_sales .append(tmp_old_sales)
+    new_group_sales.append(tmp_new_sales)
+half_finished['硬件原团队']=old_group_hardware
+half_finished['硬件现团队']=new_group_hardware
+half_finished['新增原团队']=old_group_sales
+half_finished['新增现团队']=new_group_sales
+
+all_score=[]
+for i in range(len(half_finished)):
+    tmp=half_finished['新增有效商户完成分值'][i]+half_finished['净增笔数完成分值'][i]+half_finished['硬件拓展完成分值'][i]
+    all_score.append(tmp)
+
+half_finished['完成分值合计']=all_score
+
+get_kpi=pd.read_excel('ForBdkpi.xlsx',sheet_name='BD评分')
+get_kpi=get_kpi.rename(columns={'编号':'业务员编号','评分':'主管评分'})
+
+half_finished=pd.merge(half_finished,get_kpi,how='left',on=['业务员编号'])
+
+freshman_time=datetime.datetime(2020,4,15)
+KPI=[]
+for i in range(len(half_finished)):
+    day=(half_finished['入职时间'][i]-freshman_time).days
+    #day>0,新人
+    if day>0:
+        tmp=half_finished['主管评分'][i]
+    else:
+        t1=half_finished['完成分值合计'][i]
+        t2=half_finished['主管评分'][i]
+        if t1*t2/100<0.7:
+            tmp=0.7
+        elif t1*t2/100>1.1:
+            tmp=1.1
+        elif 0.7<=t1*t2/100<=1.1:
+            tmp=t1*t2/100
+    KPI.append(tmp)
+
+half_finished['KPI值']=KPI
+
+
+half_finished.to_excel('ttt.xlsx',index=None)
+
