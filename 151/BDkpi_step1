@@ -1,0 +1,59 @@
+import pandas as pd
+import datetime
+pd.set_option('display.float_format',lambda x : '%.2f' % x)
+
+#
+# rawdata.iloc[:,27:31]=rawdata.iloc[:,27:31].fillna(0)
+# print(rawdata.head())
+# rawdata3=pd.read_excel('ForBdkpi.xlsx',sheet_name='team-change')
+# rawdata3=rawdata3.iloc[:,[4,7,8,9]]
+# rawdata3=rawdata3.rename(columns={'业务员姓名':'姓名'})
+# rawdata3=rawdata3.drop_duplicates(subset=['业务员编号'],keep='first')
+# print(rawdata3)
+# exit()
+basic=pd.read_excel('basic.xlsx')
+print(len(basic))
+# '''处理人员信息'''
+rawdata1=pd.read_excel('ForBdkpi.xlsx',sheet_name='人员信息')
+rawdata1=rawdata1.drop(index=[0])
+rawdata1=rawdata1.iloc[:,[1,2,3,4,6,7,12,13,20]]
+rawdata1['是否本月离职']=rawdata1['是否本月离职'].fillna(0)
+
+basic=pd.merge(basic,rawdata1,how='left',on=['业务员编号','姓名'])
+print('合并人员信息',len(basic))
+#
+# tmp1.to_excel('tmp1.xlsx',index=None)
+# print('finish')
+
+'''处理考勤记录'''
+rawdata2=pd.read_excel('ForBdkpi.xlsx',sheet_name='考勤记录')
+rawdata2=rawdata2.drop(index=[0])
+rawdata2 = rawdata2.iloc[:, [0,2,4,5,6,16,17]]
+rawdata2[['事假(天)','病假(天)']]=rawdata2[['事假(天)','病假(天)']].fillna(0)#( 为英文输入法下的字符
+# # print(rawdata2.tail())
+# rawdata2.to_excel('tmp考勤记录.xlsx',index=None)
+# print('finish')
+
+'''处理人员信息变更'''
+rawdata3=pd.read_excel('ForBdkpi.xlsx',sheet_name='team-change')
+print('rawdata3',len(rawdata3))
+rawdata3=rawdata3.iloc[:,[4,7,8,9]]
+rawdata3=rawdata3.rename(columns={'业务员姓名':'姓名'})
+# # print(rawdata3.head())
+# tmp1=pd.merge(basic,rawdata3,how='left',on= ['业务员编号','姓名'])
+
+#发现team-change中有重复项，李小四，方向，胡洋，苏磊，陈军丞，正好多五列出来
+#需要根据id去重
+rawdata3=rawdata3.drop_duplicates(subset=['业务员编号'],keep='first')
+# print(rawdata3)
+# exit()
+basic=pd.merge(basic,rawdata2,how='left',on=['业务员编号','姓名','入职时间','离职时间'])
+
+testsummary=pd.merge(basic,rawdata3,how='left',on= ['业务员编号','姓名'])
+# testsummary=pd.merge(basic,rawdata2,how='left',on=['业务员编号','姓名','入职时间','离职时间'])
+print(len(testsummary))
+
+testsummary.to_excel('TestSummary.xlsx',index=None)
+# '''人员信息和考勤记录,再增加人员变更信息合并后，'''
+
+'''BDkpi表的A——N列'''
