@@ -1,0 +1,61 @@
+import pandas as pd
+import datetime
+
+'''发现5月交易笔数在商户信息表中从头出现到尾，因为之前开的商户在之后产生交易，因此必须处理7w余条，以后数据量若非常大，则需要分块计算'''
+
+rawdata=pd.read_excel('ForShopfinishedValue.xlsx')
+
+'''净增交易笔数5月'''
+Subcountif1=rawdata.loc[(rawdata['审核状态']=='审核通过')&(rawdata['笔数重复进件']==0)&\
+                         (rawdata['问题商户']==0)]
+result1=Subcountif1.groupby(['编号'])['5月交易笔数汇总'].sum().reset_index(name='order_sum_May')
+
+'''净增交易笔数4月'''
+Subcountif2=rawdata.loc[(rawdata['审核状态']=='审核通过')&(rawdata['笔数重复进件']==0)&\
+                         (rawdata['问题商户']==0)]
+result2=Subcountif2.groupby(['编号'])['4月交易笔数汇总'].sum().reset_index(name='order_sum_April')
+
+mergeresult2=pd.merge(result1,result2,how='outer',on='编号')
+mergeresult2['order_sum_April']=mergeresult2['order_sum_April'].fillna(0)
+mergeresult2['order_sum_May']=mergeresult2['order_sum_May'].fillna(0)
+mergeresult2['Mminus']=mergeresult2['order_sum_May']-mergeresult2['order_sum_April']
+mergeresult2=mergeresult2.rename(columns={'编号':'业务员编号'})
+
+
+'''编号对齐到basic，minus'''
+basic=pd.read_excel('basic.xlsx')
+
+finished=pd.merge(basic,mergeresult2,how='left',on=['业务员编号'])
+
+df=pd.read_excel('testsummary.xlsx')
+
+df['净增笔数完成值']=finished['Mminus']
+onBord_time=df['入职时间']
+freshman_time=datetime.datetime(2020,4,15)
+
+current_month_attendance=19
+net_IncreasingOrder_target_value=[]
+for i in range(len(df)):
+    attend = df['实际出勤天数'][i]
+
+    sick = df['事假(天)'][i]
+    day=(onBord_time[i]-freshman_time).days
+    if day>0:
+        tmp=15000.0/current_month_attendance*(attend+sick)
+        tmp=round(tmp)
+    else:
+        tmp=20000.0
+    net_IncreasingOrder_target_value.append(tmp)
+
+df['净增笔数指标值']=net_IncreasingOrder_target_value
+df['净增笔数完成率']=df['净增笔数完成值']/df['净增笔数指标值']
+
+df['净增笔数完成率']=[i if i>0 else 0 for i in df['净增笔数完成率']]
+FinishOrderPct=[]
+for i in range(len(df)):
+    tmp=min(40,40*df['净增笔数完成率'][i])
+    tmp=round(tmp,2)
+    FinishOrderPct.append(tmp)
+df['净增笔数完成分值']=FinishOrderPct
+df.to_excel('tmpBDkpi_order.xlsx',index=None)
+
