@@ -1,0 +1,73 @@
+import pandas as pd
+import datetime
+
+freshman_time=datetime.datetime(2020,4,15)#新人豁免
+current_month_attendance=19
+'''
+新人没有硬件考核指标，老人才有；完成值取自机具记录表
+'''
+rawdata=pd.read_excel('TestSummary.xlsx')
+
+hardware_target_value=[]
+
+onBord_time=rawdata['入职时间']
+
+for i in range(len(rawdata)):
+    day=(onBord_time[i]-freshman_time).days
+    attend = rawdata['实际出勤天数'][i]
+
+    sick = rawdata['事假(天)'][i]
+    if day>0:
+        tmp=0
+    else:
+        tmp=4.0/current_month_attendance*(attend+sick)
+        tmp=round(tmp)
+    hardware_target_value.append(tmp)
+
+rawdata['硬件拓展指标值']=hardware_target_value
+
+df=pd.read_excel('ForBdkpi.xlsx',sheet_name='机具记录')
+
+df=df.iloc[:,[6,8]]
+
+rent=df.loc[df['领用用途']=='租赁']
+rent=rent.groupby(['业务员编号']).size().reset_index(name='租赁个数')
+
+sales=df.loc[df['领用用途']=='销售']
+sales=sales.groupby(['业务员编号']).size().reset_index(name='销售个数')
+
+sales['销售个数']=sales['销售个数']*2
+
+new_df=pd.merge(rent,sales,how='outer',on=['业务员编号'])
+
+new_df['租赁个数']=new_df['租赁个数'].fillna(0)
+new_df['销售个数']=new_df['销售个数'].fillna(0)
+new_df['硬件拓展完成值']=new_df['租赁个数']+new_df['销售个数']
+
+'''编号对齐到basic，minus'''
+basic=pd.read_excel('basic.xlsx')
+
+new_df=pd.merge(basic,new_df,how='left',on=['业务员编号'])
+# new_df['硬件拓展完成值']=new_df['硬件拓展完成值'].fillna(0)
+
+rawdata['硬件拓展完成值']=new_df['硬件拓展完成值'] .fillna(0)
+#
+fulfill_rate=[]
+fulfill_value=[]
+for i in range(len(rawdata)):
+    # 如果是新人，那么，不需要考核，则完成率为1
+    day = (onBord_time[i] - freshman_time).days
+    if day>0:
+        tmp=1
+    else:
+        tmp=rawdata['硬件拓展完成值'][i]/rawdata['硬件拓展指标值'][i]
+    fulfill_rate.append(tmp)
+    fulfill_value.append(min(10,10*tmp))
+#
+rawdata['硬件拓展完成率']=fulfill_rate
+rawdata['硬件拓展完成分值']=fulfill_value
+#
+#
+
+
+rawdata.to_excel('tmpBDkpi_Hardware.xlsx',index=None)
